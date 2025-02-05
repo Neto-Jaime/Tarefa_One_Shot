@@ -41,26 +41,24 @@ int64_t turn_on_all_callback(alarm_id_t id, void *user_data) {
     gpio_put(LED_RED, 1);
     gpio_put(LED_GREEN, 1);
     add_alarm_in_ms(3000, turn_on_red_callback, NULL, false);
-    printf("botaaaao");
     return 0;
 }
 
-// Função de debounce para o botão
-bool debounce_button() {
-    if (!gpio_get(BUTTON)) {
-         printf("debounce_button");
-
-        sleep_ms(50); 
-        return !gpio_get(BUTTON);
-    }
-    return false;
-}
-
-// Interrupção do botão
+// Função de interrupção do botão com debounce
 void button_callback(uint gpio, uint32_t events) {
-    if (!sequence_exec && debounce_button()) {
-        sequence_exec = true;
-        add_alarm_in_ms(0, turn_on_all_callback, NULL, false);
+    if (!sequence_exec) {
+        // Debounce do botão
+        if (!gpio_get(BUTTON)) {
+
+            // Aguarda 50ms para garantir que o botão tenha estabilizado
+            sleep_ms(50);
+
+            // Verifica o estado do botão após o delay
+            if (!gpio_get(BUTTON)) {
+                sequence_exec = true;
+                add_alarm_in_ms(0, turn_on_all_callback, NULL, false);
+            }
+        }
     }
 }
 
@@ -79,12 +77,9 @@ int main() {
     gpio_set_dir(BUTTON, GPIO_IN);
     gpio_pull_up(BUTTON);
     
-    gpio_set_irq_enabled_with_callback(BUTTON, GPIO_IRQ_LEVEL_LOW, true, &button_callback);
+    gpio_set_irq_enabled_with_callback(BUTTON, GPIO_IRQ_EDGE_FALL, true, &button_callback);
 
-    
     while (1) {
         sleep_ms(100);
-            printf("aqui");
-
     }
 }
